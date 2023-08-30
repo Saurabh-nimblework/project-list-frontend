@@ -66,7 +66,7 @@ export const ProjectList = () => {
                     {rows.map((row) => (
                         <StyledTableRow key={row.name}  >
                           <StyledTableCell align="center">{row.serialNo}</StyledTableCell>
-                          <StyledTableCell align="center" id={row.id} onClick={handleClickInput}>{clickInput && selectedRow===row.id?<TextField id={row.id} variant="outlined" placeholder="hello" />:row.id}</StyledTableCell>
+                          <StyledTableCell align="center" id={row.id} onClick={handleClickInput}>{clickInput && selectedRow===row.id?<TextField id={row.id} variant="outlined" />:row.id}</StyledTableCell>
                           <StyledTableCell align="center" id={row.id} onClick={handleClickInput}>{clickInput && selectedRow===row.id?<TextField id={row.id} variant="outlined" />:row.name}</StyledTableCell>
                           <StyledTableCell align="center" id={row.id} onClick={handleClickInput}>{clickInput && selectedRow===row.id?<TextField id={row.id} variant="outlined" />:row.owner}</StyledTableCell>
                           <StyledTableCell align="center" id={row.id} onClick={handleClickInput}>{clickInput && selectedRow===row.id?<TextField id={row.id} variant="outlined" />:row.priority}</StyledTableCell>
