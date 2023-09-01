@@ -34,7 +34,7 @@ export const SideNav = () => {
             <Divider/>  
             <List>
             {listItem.map((item) => (
-              <ListItem key={item}>
+              <ListItem key={item.text}>
               <ListItemButton href="#">
                   <ListItemIcon sx={{color: '#fff'}}>
                     {item.icon}
