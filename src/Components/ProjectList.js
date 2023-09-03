@@ -7,6 +7,7 @@ import SaveIcon from '@mui/icons-material/Save';
 import AddCircleIcon from '@mui/icons-material/AddCircle';
 import { useEffect, useState } from "react";
 import axios from "axios";
+import url from '../Config/config'
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
     [`&.${tableCellClasses.head}`]: {
@@ -16,9 +17,9 @@ const StyledTableCell = styled(TableCell)(({ theme }) => ({
       
     },
     [`&.${tableCellClasses.body}`]: {
-      fontSize: 14,
-      height: 32,
-      padding:8
+      fontSize: 16,
+      height: '4px',
+      padding: 4  
     },
   }));
   
@@ -37,10 +38,6 @@ const StyledTableButton = styled(Button)(({ theme }) => ({
   borderRadius: '24px',
 }));
 
-function createData(serialNo, id, name, owner, priority) {
-  return { serialNo, id, name, owner, priority };
-}
-
 export const ProjectList = () => {
   const [clickInput,setClickInput] = useState(false);
   const [selectedRow,setSelectedRow] = useState('');
@@ -58,36 +55,75 @@ export const ProjectList = () => {
 
   async function Load() {
     try {
-      const result = await axios.get('http://localhost:8081/list');
-      setData(result.data);
-      console.log(result.data);
+      let result = await axios.get(url.api);
+      result = result.data._embedded.list;
+
+      result = result.map((element) => {
+        let id = element._links.projectList.href;
+        id = id.substr(id.lastIndexOf('/')+1);
+
+        return {
+        id: id,
+        name: element.name,
+        owner: element.owner,
+        priority: element.priority,
+        created: true,
+        }
+      });
+      setData(result);
+      console.log(result);
     }
     catch(err) {
-      alert(`Loading Project List Failed !!`)
+      alert(`Loading Project List Failed !! ${err}`);
     }
     
   }
 
   async function save(e) {
     e.preventDefault();
-    try {
-      await axios.put("http://localhost:8081/list/" + listItem.id , {
-        id: listItem.id,
-        name: listItem.name,
-        owner: listItem.owner,
-        priority: listItem.priority
-      });
-      Load();
-      setClickInput(false);
-      setListItem({
-        id: '',
-        name: '',
-        owner: '',
-        priority: ''
-      });
+    if(!listItem.created) {
+      try {
+        await axios.post(url.api, {
+          id: listItem.id,
+          name: listItem.name,
+          owner: listItem.owner,
+          priority: listItem.priority
+        });
+        Load();
+        setClickInput(false);
+        setListItem({
+          id: '',
+          name: '',
+          owner: '',
+          priority: ''
+        });
+      console.log('POST Request');
+      }
+      catch(err) {
+        alert("Project List Addition Failed !!");
+      }
     }
-   catch(err) {
-      alert("Project List Update Failed !!");
+    else {
+      try {
+        await axios.put(url.api + listItem.id , {
+          id: listItem.id,
+          name: listItem.name,
+          owner: listItem.owner,
+          priority: listItem.priority
+        });
+        Load();
+        setClickInput(false);
+        setListItem({
+          id: '',
+          name: '',
+          owner: '',
+          priority: ''
+        });
+      console.log('PUT Request');
+      }
+    catch(err) {
+        alert("Project List Update Failed !!");
+      }
     }
   }
 
@@ -100,7 +136,7 @@ export const ProjectList = () => {
     }
 
     try {
-      await axios.delete("http://localhost:8081/list/" + data[idx].id);
+      await axios.delete(url.api + data[idx].id);
       Load();
       setClickInput(false);
       }
@@ -111,14 +147,14 @@ export const ProjectList = () => {
 
   const handleClickInput = (e,idx) => {
     const item = data[idx];
-
     setClickInput(true);
     setSelectedRow(e.target.id);
     setListItem({
       id: item.id,
       name: item.name,
       owner: item.owner,
-      priority: item.priority
+      priority: item.priority,
+      created: data[idx].created ? true: false
     });
   }
 
@@ -137,7 +173,8 @@ export const ProjectList = () => {
       id: temp.id,
       name: temp.name,
       owner: temp.owner,
-      priority: temp.priority
+      priority: temp.priority,
+      created: data[idx].created ? true: false
     });
   }
 
@@ -170,7 +207,7 @@ export const ProjectList = () => {
                         <StyledTableCell align="center">Project Name</StyledTableCell>
                         <StyledTableCell align="center">Owner</StyledTableCell>
                         <StyledTableCell align="center">Priority</StyledTableCell>
-                        <StyledTableCell align="center">Option</StyledTableCell>
+                        {data.length !== 0 && <StyledTableCell align="center">Option</StyledTableCell>}
                     </TableRow>
                     </TableHead>
                     <TableBody>
@@ -179,8 +216,8 @@ export const ProjectList = () => {
                           <StyledTableCell align="center">{idx+1}</StyledTableCell>
                           { Object.keys(row).map((key,i)=>{
                               return (
-                                <StyledTableCell key={i} align="center" id={row.id} onClick={(e) => handleClickInput(e,idx)}>
-                                  { clickInput && selectedRow===row.id ?
+                                (key !== 'created') && <StyledTableCell key={i} align="center" id={row.id} onClick={(e) => handleClickInput(e,idx)}>
+                                  { ((clickInput && selectedRow===row.id) && !(key === 'id' && row.created)) || row.id === '' ?
                                     <TextField
                                       autoComplete="on"
                                       id={row.id}
@@ -188,7 +225,12 @@ export const ProjectList = () => {
                                       value={row[key]}
                                       onChange={(e)=>handleTextChange(e,idx)}
                                       inputProps={{
-                                        name: key
+                                        name: key,
+                                        style: {
+                                          height: '12px',
+                                          fontSize: 18,
+                                          textAlign: 'center'
+                                        }
                                       }}
                                      />
                                     :row[key] }
@@ -197,8 +239,8 @@ export const ProjectList = () => {
                             }) }
                             <StyledTableCell align="center">
                               <Box sx={{display: 'flex', justifyContent: 'center'}}>
-                                <StyledTableButton variant="contained" endIcon={<DeleteIcon />} onClick={(e)=>remove(e,idx)}>Delete</StyledTableButton>
-                                <StyledTableButton variant="contained" endIcon={<SaveIcon />} onClick={save}>Save</StyledTableButton>
+                                <StyledTableButton size="medium" variant="contained" endIcon={<DeleteIcon />} onClick={(e)=>remove(e,idx)}>Delete</StyledTableButton>
+                                <StyledTableButton size="medium" disabled={!(clickInput && selectedRow===row.id)} variant="contained" endIcon={<SaveIcon />} onClick={save}>Save</StyledTableButton>
                               </Box>
                             </StyledTableCell>
                         </StyledTableRow>
