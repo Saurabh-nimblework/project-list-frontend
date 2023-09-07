@@ -1,3 +1,5 @@
+import { useEffect, useState } from "react";
+import axios from "axios";
 import { Box, TableContainer, Table, TableHead, TableRow, TableBody, TextField, Button  } from "@mui/material";
 import TableCell, { tableCellClasses } from '@mui/material/TableCell';
 import { styled } from '@mui/material/styles';
@@ -5,8 +7,9 @@ import Paper from '@mui/material/Paper';
 import DeleteIcon from '@mui/icons-material/Delete';
 import SaveIcon from '@mui/icons-material/Save';
 import AddCircleIcon from '@mui/icons-material/AddCircle';
-import { useEffect, useState } from "react";
-import axios from "axios";
+import FormControl from '@mui/material/FormControl';
+import MenuItem from '@mui/material/MenuItem';
+import Select from '@mui/material/Select';
 import url from '../Config/config'
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
@@ -39,9 +42,9 @@ const StyledTableButton = styled(Button)(({ theme }) => ({
 }));
 
 export const ProjectList = () => {
-  const [clickInput,setClickInput] = useState(false);
   const [selectedRow,setSelectedRow] = useState('');
   const [data,setData] = useState([]);
+  const [lastId,setLastId] = useState('');
   const [listItem,setListItem] = useState({
     id: '',
     name: '',
@@ -71,7 +74,8 @@ export const ProjectList = () => {
         }
       });
       setData(result);
-      console.log(result);
+      console.log(result); 
+      result.length && setLastId(result[result.length-1].id);
     }
     catch(err) {
       alert(`Loading Project List Failed !! ${err}`);
@@ -81,23 +85,20 @@ export const ProjectList = () => {
 
   async function save(e) {
     e.preventDefault();
+
+    const obj = {
+      name: listItem.name,
+      owner: listItem.owner,
+      priority: listItem.priority
+    }
+    
     if(!listItem.created) {
       try {
-        await axios.post(url.api, {
-          id: listItem.id,
-          name: listItem.name,
-          owner: listItem.owner,
-          priority: listItem.priority
-        });
+        let id = lastId !== '' ? lastId.substr(0,lastId.length-1) + (Number(lastId.substr(-1))+1) : 'PRJ1';
+        obj.id = id;
+        await axios.post(url.api, obj);
         Load();
-        setClickInput(false);
-        setListItem({
-          id: '',
-          name: '',
-          owner: '',
-          priority: ''
-        });
-      console.log('POST Request');
+        console.log('POST Request');
       }
       catch(err) {
         alert("Project List Addition Failed !!");
@@ -105,49 +106,51 @@ export const ProjectList = () => {
     }
     else {
       try {
-        await axios.put(url.api + listItem.id , {
-          id: listItem.id,
-          name: listItem.name,
-          owner: listItem.owner,
-          priority: listItem.priority
-        });
+        obj.id = listItem.id;
+        await axios.put(url.api + listItem.id , obj);
         Load();
-        setClickInput(false);
-        setListItem({
-          id: '',
-          name: '',
-          owner: '',
-          priority: ''
-        });
-      console.log('PUT Request');
+        console.log('PUT Request');
       }
     catch(err) {
         alert("Project List Update Failed !!");
       }
     }
+
+    setSelectedRow('');
+    setListItem({
+      id: '',
+      name: '',
+      owner: '',
+      priority: ''
+    });
   }
 
   async function remove(e,idx) {
     e.preventDefault();
-
     if(data[idx].id === '') {
-      removeRow(idx);
+      removeRow();
       return;
     }
 
     try {
       await axios.delete(url.api + data[idx].id);
+      setSelectedRow('');
+      setLastId('');
       Load();
-      setClickInput(false);
       }
     catch(err) {
         alert("Project List Deletion Failed !!");
       }
   }
 
+  const removeRow = () => {
+    let temp = [...data];
+    temp.pop();
+    setData(temp);
+  }
+
   const handleClickInput = (e,idx) => {
     const item = data[idx];
-    setClickInput(true);
     setSelectedRow(e.target.id);
     setListItem({
       id: item.id,
@@ -167,7 +170,6 @@ export const ProjectList = () => {
     };
     tempArray[idx] = temp;
     setData(tempArray);
-    if(e.target.name === 'id') setSelectedRow(e.target.value);
 
     setListItem({
       id: temp.id,
@@ -189,15 +191,13 @@ export const ProjectList = () => {
     setData(temp);
   }
 
-  const removeRow = () => {
-    let temp = [...data];
-    temp.pop();
-    setData(temp);
-  }
-
     return (
         <>
           <Box sx={{position:'relative', left: 280, top: 120,px:'4%', width: 'calc(92% - 280px)' }}>
+            <Button variant="outlined" startIcon={<AddCircleIcon/>} onClick={addRow} size="small" sx={{float: 'right',mr:0,mb:1, borderRadius: '24px', border: 1}} >
+              Add
+            </Button>
+            
             <TableContainer component={Paper}>
                 <Table  aria-label="customized table">
                     <TableHead>
@@ -214,43 +214,89 @@ export const ProjectList = () => {
                     {data.map((row,idx) => (
                         <StyledTableRow key={`key-${idx}`}>
                           <StyledTableCell align="center">{idx+1}</StyledTableCell>
-                          { Object.keys(row).map((key,i)=>{
-                              return (
-                                (key !== 'created') && <StyledTableCell key={i} align="center" id={row.id} onClick={(e) => handleClickInput(e,idx)}>
-                                  { ((clickInput && selectedRow===row.id) && !(key === 'id' && row.created)) || row.id === '' ?
-                                    <TextField
-                                      autoComplete="on"
-                                      id={row.id}
-                                      variant="outlined"
-                                      value={row[key]}
-                                      onChange={(e)=>handleTextChange(e,idx)}
-                                      inputProps={{
-                                        name: key,
-                                        style: {
-                                          height: '12px',
-                                          fontSize: 18,
-                                          textAlign: 'center'
-                                        }
-                                      }}
-                                     />
-                                    :row[key] }
-                                </StyledTableCell>
-                                );
-                            }) }
-                            <StyledTableCell align="center">
-                              <Box sx={{display: 'flex', justifyContent: 'center'}}>
-                                <StyledTableButton size="medium" variant="contained" endIcon={<DeleteIcon />} onClick={(e)=>remove(e,idx)}>Delete</StyledTableButton>
-                                <StyledTableButton size="medium" disabled={!(clickInput && selectedRow===row.id && listItem.id !== '')} variant="contained" endIcon={<SaveIcon />} onClick={save}>Save</StyledTableButton>
-                              </Box>
-                            </StyledTableCell>
+
+                          <StyledTableCell align="center" id={row.id} onClick={(e) => handleClickInput(e,idx)}>
+                           {row.id}
+                          </StyledTableCell>
+
+                          <StyledTableCell align="center" id={row.id} onClick={(e) => handleClickInput(e,idx)}>
+                            { (selectedRow===row.id) || !row.created ?
+                              <TextField
+                                autoComplete="on"
+                                id={row.id}
+                                variant="outlined"
+                                value={row.name}
+                                onChange={(e)=>handleTextChange(e,idx)}
+                                inputProps={{
+                                  name: 'name',
+                                  style: {
+                                    height: '12px',
+                                    fontSize: 18,
+                                    textAlign: 'center'
+                                  }
+                                }}
+                                />
+                              :row.name }
+                          </StyledTableCell> 
+
+                          <StyledTableCell align="center" id={row.id} onClick={(e) => handleClickInput(e,idx)}>
+                            { (selectedRow===row.id) || !row.created ?
+                              <TextField
+                                autoComplete="on"
+                                id={row.id}
+                                variant="outlined"
+                                value={row.owner}
+                                onChange={(e)=>handleTextChange(e,idx)}
+                                inputProps={{
+                                  name: 'owner',
+                                  style: {
+                                    height: '12px',
+                                    fontSize: 18,
+                                    textAlign: 'center'
+                                  }
+                                }}
+                                />
+                              :row.owner }
+                          </StyledTableCell>
+
+                          { ((selectedRow===row.id) || !row.created) ?
+                          <StyledTableCell align="center" id={row.id} >
+                            <FormControl fullWidth>
+                              <Select
+                                value={row.priority}
+                                onChange={(e)=>handleTextChange(e,idx)}
+                                inputProps={{
+                                  name: 'priority',
+                                }}
+                                sx={{
+                                  fontSize: 18,
+                                  textAlign: 'center',
+                                  height: '45px',
+                                }}
+                                >
+                                <MenuItem id={row.id} value='Critical'>Critical</MenuItem>
+                                <MenuItem id={row.id} value='High'>High</MenuItem>
+                                <MenuItem id={row.id} value='Mid'>Mid</MenuItem>
+                                <MenuItem id={row.id} value='Low'>Low</MenuItem>
+                              </Select>
+                            </FormControl>
+                          </StyledTableCell>
+                          :
+                          <StyledTableCell align="center" id={row.id} onClick={(e) => handleClickInput(e,idx)}>
+                            {row.priority}
+                            </StyledTableCell> }
+
+                          <StyledTableCell align="center">
+                            <Box sx={{display: 'flex', justifyContent: 'center'}}>
+                              <StyledTableButton size="medium" variant="contained" endIcon={<DeleteIcon />} onClick={(e)=>remove(e,idx)}>Delete</StyledTableButton>
+                              <StyledTableButton size="medium" disabled={(selectedRow !== row.id)} variant="contained" endIcon={<SaveIcon />} onClick={save}>Save</StyledTableButton>
+                            </Box>
+                          </StyledTableCell>
                         </StyledTableRow>
                     ))}
                     </TableBody>
                 </Table>
             </TableContainer>
-            <Button variant="outlined" startIcon={<AddCircleIcon/>} onClick={addRow} size="small" sx={{float: 'right',mr:0,mt:2, borderRadius: '24px', border: 1}} >
-              Add
-            </Button>
           </Box>
         </>
     );

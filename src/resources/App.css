@@ -1,3 +1,7 @@
 .App {
   text-align: center;
 }
+
+#mui-component-select-priority {
+  padding-right: 14px;
+}
