@@ -88,6 +88,7 @@ export const ProjectList = () => {
   const [data,setData] = useState([]);
   const [lastId,setLastId] = useState('');
   const [listItem,setListItem] = useState({...emptyList});
+  const [isNameUnique,setIsNameUnique] = useState(true);
 
   useEffect(()=> {
     (async () => await Load())();
@@ -119,7 +120,8 @@ export const ProjectList = () => {
         }
       });
       setData(result);
-      console.log(result); 
+      console.log(result);
+      setIsNameUnique(true); 
       result.length && setLastId(result[result.length-1].id);
     }
     catch(err) {
@@ -130,6 +132,17 @@ export const ProjectList = () => {
 
   async function save(e) {
     e.preventDefault();
+
+    // Checking if name is not unique
+    let flag = true;
+    data.forEach(row => {
+      if(row.name === listItem.name && row.id !== listItem.id) {
+        setIsNameUnique(false);
+        flag = false;
+        return;
+      }
+    });
+    if(!flag) return;
 
     const obj = {
       ...provideListItem(listItem),
@@ -185,9 +198,11 @@ export const ProjectList = () => {
     let temp = [...data];
     temp.pop();
     setData(temp);
+    setIsNameUnique(true);
   }
 
   const handleClickInput = (e,idx) => {
+    if(data[idx].id !== listItem.id) setIsNameUnique(true);
     const item = data[idx];
     setSelectedRow(e.target.id);
     setListItem({
@@ -197,6 +212,7 @@ export const ProjectList = () => {
   }
 
   const handleTextChange = (e,idx) => {
+    setIsNameUnique(true);
     let temp = {...data[idx]};
     let tempArray = [...data];
     temp = {
@@ -213,7 +229,7 @@ export const ProjectList = () => {
   }
 
   const handleDateChange = (val,idx) => {
-    const str = val.format('DD/MM/YYYY');
+    const str = val?.format('DD/MM/YYYY');
     const obj = {
       target: {
         name: 'endDate',
@@ -232,7 +248,7 @@ export const ProjectList = () => {
     return (
         <>
           <Box sx={{position:'relative', left: 280, top: 120,px:'4%', width: 'calc(92% - 280px)' }}>
-            <Button variant="outlined" startIcon={<AddCircleIcon/>} onClick={addRow} size="small" sx={{float: 'right',mr:0,mb:1, borderRadius: '24px', border: 1}} >
+            <Button variant="outlined" disabled={!isNameUnique} startIcon={<AddCircleIcon/>} onClick={addRow} size="small" sx={{float: 'right',mr:0,mb:1, borderRadius: '24px', border: 1}} >
               Add
             </Button>
             
@@ -275,6 +291,8 @@ export const ProjectList = () => {
                                     textAlign: 'center'
                                   }
                                 }}
+                                error={!isNameUnique}
+                                helperText={!isNameUnique && 'name must be unique'}
                                 />
                               :row.name }
                           </StyledTableCell> 
@@ -282,6 +300,7 @@ export const ProjectList = () => {
                           { ((selectedRow===row.id) || !row.created) ?
                           <StyledTableCell align="center" id={row.id} sx={{pt: '8px !important'}}>
                             <StyledTextarea
+                              // multiline='true'
                               maxRows={2}
                               minRows={2}
                               placeholder="describe your project"
@@ -352,7 +371,6 @@ export const ProjectList = () => {
                                     name: 'endDate'
                                   }
                                 }}
-                                value={dayjs(row.endDate)}
                                 onChange={(val) => handleDateChange(val,idx)}
                                 format="DD/MM/YYYY"
                               />
