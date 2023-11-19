@@ -11,7 +11,7 @@ export const Layout = () => {
             <AppBar position="fixed" sx={{width: 'calc(100% - 280px)'}} >
               <Toolbar sx={{display: 'flex',justifyContent: 'center', alignItems: 'center', height:64}}>
                 <Typography variant="h4">
-                  Project Lisitng
+                  Project Listing
                 </Typography>
               </Toolbar>
             </AppBar>

@@ -107,15 +107,9 @@ export const ProjectList = () => {
   async function Load() {
     try {
       let result = await axios.get(url.api);
-      result = result.data._embedded.list;
-
-      result = result.map((element) => {
-        let id = element._links.projectList.href;
-        id = id.substr(id.lastIndexOf('/')+1);
-
+      result = result.data.map((element) => {
         return {
           ...provideListItem(element),
-          id: id,
           created: true,
         }
       });
@@ -245,6 +239,44 @@ export const ProjectList = () => {
     setData(temp);
   }
 
+  const sortTableByName = () => {
+    const temp = [...data];
+    temp.sort(function(obj1,obj2) {
+      if(obj1.name === '' && obj2.name !== '') return 1;
+      if((obj2.name === '' && obj1.name !== '') || (obj1.name<obj2.name)) return -1;
+      else return 1;
+    });
+    setData(temp);
+  }
+
+  const sortTableById = () => {
+    const temp = [...data];
+    temp.sort(function(obj1,obj2) {
+      if(obj1.id === '' && obj2.id !== '') return 1;
+      if((obj2.id === '' && obj1.id !== '') || (obj1.id<obj2.id)) return -1;
+      else return 1;
+    });
+    setData(temp);
+  }
+
+  const sortTableByPriority = () => {
+    const temp = [...data];
+    const obj = {
+      Low: '1',
+      Mid: '2',
+      High: '3',
+      Critical: '4'
+    }
+    temp.sort(function(obj1,obj2) {
+      if(obj1.priority === '' && obj2.priority !== '') return 1;
+      if((obj2.priority === '' && obj1.priority !== '') || (obj[obj1.priority]<obj[obj2.priority])) return -1;
+      else return 1;
+    });
+    setData(temp);
+  }
+
+
+
     return (
         <>
           <Box sx={{position:'relative', left: 280, top: 120,px:'4%', width: 'calc(92% - 280px)' }}>
@@ -257,11 +289,11 @@ export const ProjectList = () => {
                     <TableHead>
                     <TableRow>
                         <StyledTableCell style={{width:'5%'}} align="center">#</StyledTableCell>
-                        <StyledTableCell align="center">Project ID</StyledTableCell>
-                        <StyledTableCell align="center">Project Name</StyledTableCell>
+                        <StyledTableCell align="center" onClick={sortTableById}>Project ID</StyledTableCell>
+                        <StyledTableCell align="center" onClick={sortTableByName}>Project Name</StyledTableCell>
                         <StyledTableCell align="center" sx={{width: '15% !important'}}>Description</StyledTableCell>
                         <StyledTableCell align="center">Owner</StyledTableCell>
-                        <StyledTableCell align="center">Priority</StyledTableCell>
+                        <StyledTableCell align="center" onClick={sortTableByPriority}>Priority</StyledTableCell>
                         <StyledTableCell align="center">End Date</StyledTableCell>
                         {data.length !== 0 && <StyledTableCell align="center">Option</StyledTableCell>}
                     </TableRow>
